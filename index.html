@@ -1,233 +1,1408 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FBBoost Pro — Semi-Auto Interaction Tool</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    body { font-family: 'Inter', sans-serif; }
-    .sidebar-item.active { background: rgba(99,102,241,.12); color: #6366f1; }
-    .sidebar-item.active .icon { color: #6366f1; }
-    .post-card { transition: box-shadow .2s; }
-    .post-card:hover { box-shadow: 0 4px 24px rgba(99,102,241,.10); }
-    .log-entry { animation: slideIn .3s ease; }
-    @keyframes slideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
-    .badge-live { animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-    .spinner { animation: spin .8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .btn-primary { background: linear-gradient(135deg,#6366f1,#8b5cf6); }
-    .btn-primary:hover { background: linear-gradient(135deg,#4f46e5,#7c3aed); }
-    select option { background: #1e293b; }
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
-  </style>
-</head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex">
-
-  <!-- SIDEBAR -->
-  <aside id="sidebar" class="w-64 min-h-screen bg-slate-900 border-r border-slate-800 flex flex-col fixed top-0 left-0 z-40 transition-transform duration-300">
-    <!-- Logo -->
-    <div class="px-5 py-5 border-b border-slate-800 flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg btn-primary flex items-center justify-center">
-        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+<div id="bcr-app">
+  <header class="bcr-header">
+    <div class="bcr-header-left">
+      <div class="bcr-logo">BCR Real-Time Analyzer</div>
+      <span class="bcr-badge live">● LIVE</span>
+    </div>
+    <div class="bcr-header-center">
+      <div class="bcr-stat-pill">
+        <span class="label">Ván hiện tại</span>
+        <span class="value" id="total-rounds">0</span>
       </div>
-      <div>
-        <span class="font-bold text-white text-sm tracking-tight">FBBoost Pro</span>
-        <span class="block text-xs text-slate-500">Semi-Auto Tool</span>
+      <div class="bcr-stat-pill">
+        <span class="label">Cập nhật cuối</span>
+        <span class="value" id="last-update">--:--:--</span>
+      </div>
+    </div>
+    <div class="bcr-header-right">
+      <button class="bcr-btn secondary" onclick="app.resetSession()">🔄 Reset</button>
+    </div>
+  </header>
+
+  <section class="bcr-section input-section">
+    <div class="bcr-input-grid">
+      <button class="bcr-input-btn player" onclick="app.addRound('P')">
+        <div class="btn-label">PLAYER</div><div class="btn-sub">P</div>
+      </button>
+      <button class="bcr-input-btn banker" onclick="app.addRound('B')">
+        <div class="btn-label">BANKER</div><div class="btn-sub">B</div>
+      </button>
+      <button class="bcr-input-btn tie" onclick="app.addRound('T')">
+        <div class="btn-label">TIE</div><div class="btn-sub">T</div>
+      </button>
+      <button class="bcr-input-btn undo" onclick="app.undo()">
+        <div class="btn-label">UNDO</div><div class="btn-sub">↩</div>
+      </button>
+    </div>
+  </section>
+
+  <section class="bcr-section stats-section">
+    <div class="bcr-stats-grid">
+      <div class="bcr-stat-card total">
+        <div class="stat-title">TỔNG VÁN</div>
+        <div class="stat-value" id="stat-total">0</div>
+      </div>
+      <div class="bcr-stat-card player">
+        <div class="stat-title">PLAYER</div>
+        <div class="stat-value" id="stat-player-count">0</div>
+        <div class="stat-percent" id="stat-player-pct">0%</div>
+      </div>
+      <div class="bcr-stat-card banker">
+        <div class="stat-title">BANKER</div>
+        <div class="stat-value" id="stat-banker-count">0</div>
+        <div class="stat-percent" id="stat-banker-pct">0%</div>
+      </div>
+      <div class="bcr-stat-card tie">
+        <div class="stat-title">TIE</div>
+        <div class="stat-value" id="stat-tie-count">0</div>
+        <div class="stat-percent" id="stat-tie-pct">0%</div>
+      </div>
+      <div class="bcr-stat-card streak">
+        <div class="stat-title">CHUỖI HIỆN TẠI</div>
+        <div class="stat-value" id="stat-current-streak">-</div>
+      </div>
+      <div class="bcr-stat-card max-streak">
+        <div class="stat-title">CHUỖI DÀI NHẤT</div>
+        <div class="stat-value" id="stat-max-streak">-</div>
+      </div>
+      <div class="bcr-stat-card transitions">
+        <div class="stat-title">P↔B CHUYỂN ĐỔI</div>
+        <div class="stat-value" id="stat-transitions">0</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="bcr-main-layout">
+    <div class="bcr-roads-panel">
+      <div class="bcr-road-container">
+        <div class="road-title">BIG ROAD <span class="road-hint">● B=Đỏ ○ P=Xanh</span></div>
+        <div class="road-scroll"><div id="big-road" class="road-grid big-road"></div></div>
+      </div>
+      <div class="bcr-derived-roads">
+        <div class="bcr-road-container">
+          <div class="road-title">BIG EYE BOY</div>
+          <div class="road-scroll"><div id="big-eye-boy" class="road-grid derived-road"></div></div>
+        </div>
+        <div class="bcr-road-container">
+          <div class="road-title">SMALL ROAD</div>
+          <div class="road-scroll"><div id="small-road" class="road-grid derived-road"></div></div>
+        </div>
+        <div class="bcr-road-container">
+          <div class="road-title">COCKROACH</div>
+          <div class="road-scroll"><div id="cockroach-road" class="road-grid derived-road"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- Nav -->
-    <nav class="flex-1 px-3 py-4 space-y-1">
-      <button onclick="showSection('dashboard')" class="sidebar-item active w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800">
-        <svg class="icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        Dashboard
-      </button>
-      <button onclick="showSection('posts')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800">
-        <svg class="icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        Posts & Interaction
-      </button>
-      <button onclick="showSection('logs')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800">
-        <svg class="icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h8m-8 4h6"/></svg>
-        Execution Logs
-        <span id="log-badge" class="ml-auto text-xs bg-indigo-500 text-white px-1.5 py-0.5 rounded-full hidden">0</span>
-      </button>
-      <button onclick="showSection('settings')" class="sidebar-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all text-slate-300 hover:bg-slate-800">
-        <svg class="icon w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
-      </button>
-    </nav>
+    <div class="bcr-sidebar">
+      <div class="bcr-panel">
+        <div class="panel-header">
+          <h3>LỊCH SỬ VÁN</h3>
+          <button class="bcr-btn text" onclick="app.clearHistory()">Xóa tất cả</button>
+        </div>
+        <div class="history-list" id="history-list">
+          <div class="empty-state">Chưa có dữ liệu. Nhập ván đầu tiên.</div>
+        </div>
+      </div>
 
-    <!-- Status -->
-    <div class="px-4 py-4 border-t border-slate-800">
-      <div class="bg-slate-800 rounded-lg px-3 py-2.5 flex items-center gap-2">
-        <div id="status-dot" class="w-2 h-2 rounded-full bg-slate-500"></div>
-        <span id="status-text" class="text-xs text-slate-400">Idle</span>
+      <div class="bcr-panel">
+        <div class="panel-header"><h3>TREND ANALYZER</h3></div>
+        <div class="trend-table-wrapper">
+          <table class="bcr-table" id="trend-table">
+            <thead><tr><th>Cửa sổ</th><th>Player</th><th>Banker</th><th>Tie</th><th>Xu hướng</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="bcr-panel">
+        <div class="panel-header"><h3>PHÂN TÍCH CHUỖI</h3></div>
+        <div id="pattern-analysis">
+          <div class="pattern-item"><span class="pattern-label">Chuỗi hiện tại:</span><span class="pattern-value" id="pattern-streak">-</span></div>
+          <div class="pattern-item"><span class="pattern-label">Pattern gần nhất:</span><span class="pattern-value" id="pattern-recent">-</span></div>
+          <div class="pattern-item"><span class="pattern-label">Tần suất 10 ván:</span><span class="pattern-value" id="pattern-freq-10">-</span></div>
+        </div>
+        <div class="bcr-warning" id="pattern-warning" style="display:none">
+          ⚠ Pattern chỉ phản ánh dữ liệu lịch sử và không đảm bảo kết quả ván tiếp theo.
+        </div>
+      </div>
+
+      <div class="bcr-panel next-round-panel">
+        <div class="panel-header"><h3>PHÂN TÍCH VÁN TIẾP THEO</h3></div>
+        <div id="next-round-analysis">
+          <div class="next-scores">
+            <div class="score-bar"><span class="score-label">Player</span><div class="score-track"><div class="score-fill player" id="next-player-bar"></div></div><span class="score-value" id="next-player-score">-</span></div>
+            <div class="score-bar"><span class="score-label">Banker</span><div class="score-track"><div class="score-fill banker" id="next-banker-bar"></div></div><span class="score-value" id="next-banker-score">-</span></div>
+            <div class="score-bar"><span class="score-label">Tie</span><div class="score-track"><div class="score-fill tie" id="next-tie-bar"></div></div><span class="score-value" id="next-tie-score">-</span></div>
+          </div>
+          <div class="next-confidence"><span class="conf-label">Độ tin cậy:</span><span class="conf-value" id="next-confidence">-</span></div>
+          <div class="next-evaluation" id="next-evaluation">Chưa đủ dữ liệu để phân tích.</div>
+        </div>
+        <div class="bcr-warning">⚠ Đây chỉ là đánh giá thống kê tham khảo, không phải kết quả chắc chắn.</div>
       </div>
     </div>
-  </aside>
+  </div>
 
-  <!-- MAIN CONTENT -->
-  <main class="flex-1 ml-64 min-h-screen flex flex-col">
-
-    <!-- Top Bar -->
-    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
-      <div class="flex items-center gap-3">
-        <button onclick="toggleSidebar()" class="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 lg:hidden">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
-        </button>
-        <div>
-          <h1 id="page-title" class="text-base font-semibold text-white">Dashboard</h1>
-          <p id="page-subtitle" class="text-xs text-slate-500">Tổng quan hệ thống</p>
-        </div>
+  <section class="bcr-section">
+    <div class="bcr-panel ai-panel">
+      <div class="panel-header"><h3>🤖 AI STATISTICAL ANALYZER</h3></div>
+      <div id="ai-analysis-content">
+        <div class="ai-section"><div class="ai-label">Dữ liệu gần đây (20 ván):</div><div class="ai-data" id="ai-recent">-</div></div>
+        <div class="ai-section"><div class="ai-label">Xu hướng:</div><div class="ai-data" id="ai-trend">-</div></div>
+        <div class="ai-section"><div class="ai-label">Pattern nhận diện:</div><div class="ai-data" id="ai-pattern">-</div></div>
+        <div class="ai-section"><div class="ai-label">Đánh giá AI:</div><div class="ai-data" id="ai-evaluation">-</div></div>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="run-status-badge" class="hidden items-center gap-1.5 text-xs bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-1 rounded-full badge-live">
-          <span class="w-1.5 h-1.5 bg-emerald-400 rounded-full"></span>
-          Running
-        </span>
-        <button id="run-btn" onclick="runExecution()" class="btn-primary text-white text-sm font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          RUN
-        </button>
-      </div>
-    </header>
-
-    <!-- SECTIONS -->
-    <div class="flex-1 p-6">
-
-      <!-- DASHBOARD -->
-      <section id="section-dashboard">
-        <!-- Stats -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p class="text-xs text-slate-500 mb-1">Posts loaded</p>
-            <p id="stat-posts" class="text-2xl font-bold text-white">0</p>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p class="text-xs text-slate-500 mb-1">Actions queued</p>
-            <p id="stat-actions" class="text-2xl font-bold text-indigo-400">0</p>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p class="text-xs text-slate-500 mb-1">Completed</p>
-            <p id="stat-done" class="text-2xl font-bold text-emerald-400">0</p>
-          </div>
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <p class="text-xs text-slate-500 mb-1">AI comments gen</p>
-            <p id="stat-ai" class="text-2xl font-bold text-violet-400">0</p>
-          </div>
-        </div>
-
-        <!-- Page Input Card -->
-        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 mb-5">
-          <h2 class="text-sm font-semibold text-white mb-1 flex items-center gap-2">
-            <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-            Facebook Page Input
-          </h2>
-          <p class="text-xs text-slate-500 mb-4">Nhập link Facebook Page để lấy bài viết</p>
-          <div class="flex gap-3">
-            <input id="page-url" type="text" placeholder="https://www.facebook.com/yourpage"
-              class="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30" />
-            <button onclick="fetchPosts()" id="fetch-btn"
-              class="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium px-4 py-2.5 rounded-lg flex items-center gap-2 transition-colors whitespace-nowrap">
-              <svg id="fetch-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-              Fetch Posts
-            </button>
-          </div>
-          <p class="text-xs text-slate-600 mt-2">* Dùng Facebook Page ID hoặc username (ví dụ: facebook.com/cocacola)</p>
-        </div>
-
-        <!-- Quick tip -->
-        <div class="bg-indigo-500/10 border border-indigo-500/20 rounded-xl p-4 flex gap-3">
-          <svg class="w-4 h-4 text-indigo-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <div class="text-xs text-indigo-300 space-y-1">
-            <p class="font-medium">Hướng dẫn sử dụng</p>
-            <p>1. Nhập link Facebook Page → Fetch Posts (tạo 10 slots)</p>
-            <p>2. Vào Posts → Paste URL bài viết thật vào từng slot</p>
-            <p>3. Tick like / comment / share, Generate AI comment</p>
-            <p>4. Nhấn RUN → tool mở từng bài, copy comment → bạn paste thủ công</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- POSTS SECTION -->
-      <section id="section-posts" class="hidden">
-        <div id="posts-empty" class="flex flex-col items-center justify-center py-20 text-center">
-          <svg class="w-14 h-14 text-slate-700 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-          <p class="text-slate-500 text-sm">Chưa có bài viết nào. Hãy Fetch Posts từ Dashboard.</p>
-          <button onclick="showSection('dashboard')" class="mt-4 text-xs text-indigo-400 hover:text-indigo-300 underline">Về Dashboard</button>
-        </div>
-        <div id="posts-list" class="space-y-4 hidden"></div>
-      </section>
-
-      <!-- LOGS SECTION -->
-      <section id="section-logs" class="hidden">
-        <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-          <div class="flex items-center justify-between px-5 py-3 border-b border-slate-800">
-            <h2 class="text-sm font-semibold text-white flex items-center gap-2">
-              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h8m-8 4h6"/></svg>
-              Execution Logs
-            </h2>
-            <button onclick="clearLogs()" class="text-xs text-slate-500 hover:text-slate-300 transition-colors">Clear</button>
-          </div>
-          <div id="log-container" class="min-h-64 max-h-[600px] overflow-y-auto bg-slate-950 font-mono text-xs p-4 space-y-1">
-            <p class="text-slate-600 italic">Logs will appear here during execution...</p>
-          </div>
-        </div>
-      </section>
-
-      <!-- SETTINGS SECTION -->
-      <section id="section-settings" class="hidden">
-        <div class="max-w-xl space-y-4">
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <h2 class="text-sm font-semibold text-white mb-4">Execution Settings</h2>
-            <div class="space-y-4">
-              <div>
-                <label class="text-xs text-slate-400 mb-1 block">Delay tối thiểu (giây)</label>
-                <input id="delay-min" type="number" value="7" min="3" max="60"
-                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-              </div>
-              <div>
-                <label class="text-xs text-slate-400 mb-1 block">Delay tối đa (giây)</label>
-                <input id="delay-max" type="number" value="20" min="5" max="120"
-                  class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" />
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <h2 class="text-sm font-semibold text-white mb-4">AI Settings</h2>
-            <div>
-              <label class="text-xs text-slate-400 mb-1 block">Default comment style</label>
-              <select id="default-style" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                <option value="natural">Tự nhiên</option>
-                <option value="seeding">Seeding</option>
-                <option value="viral">Viral</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
-            <svg class="w-4 h-4 text-amber-400 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            <div class="text-xs text-amber-300 space-y-1">
-              <p class="font-medium">Lưu ý an toàn</p>
-              <p>Tool này không tự động click hay login Facebook. Mọi thao tác đều cần bạn thực hiện thủ công sau khi tool mở bài viết và copy comment.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
     </div>
-  </main>
+  </section>
 
-  <!-- TOAST -->
-  <div id="toast" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <section class="bcr-section">
+    <div class="bcr-panel">
+      <div class="panel-header"><h3>QUẢN LÝ PHIÊN & DỮ LIỆU</h3></div>
+      <div class="session-controls">
+        <button class="bcr-btn primary" onclick="app.newSession()">🆕 Phiên mới</button>
+        <button class="bcr-btn primary" onclick="app.saveSession()">💾 Lưu phiên</button>
+        <button class="bcr-btn secondary" onclick="app.exportCSV()">📥 Xuất CSV</button>
+        <button class="bcr-btn secondary" onclick="app.importCSV()">📤 Nhập CSV</button>
+        <button class="bcr-btn secondary" onclick="app.simulateOCR()">📷 OCR Ảnh</button>
+      </div>
+      <div class="session-list" id="session-list">
+        <div class="empty-state">Chưa có phiên nào được lưu.</div>
+      </div>
+    </div>
+  </section>
 
-  <script src="script.js"></script>
-</body>
-</html>
+  <div id="data-warnings"></div>
+
+  <div id="ocr-modal" class="bcr-modal" style="display:none">
+    <div class="modal-content">
+      <h3>OCR NHẬN DIỆN ẢNH</h3>
+      <p>Tải ảnh screenshot bàn Baccarat để nhận diện chuỗi kết quả.</p>
+      <input type="file" id="ocr-file" accept="image/*" onchange="app.handleOCRUpload(event)">
+      <div id="ocr-preview" style="margin:10px 0"></div>
+      <div id="ocr-result" style="margin:10px 0; font-family:monospace; background:#1a1d29; padding:10px; border-radius:6px;"></div>
+      <div class="modal-actions">
+        <button class="bcr-btn primary" onclick="app.confirmOCR()">✅ Xác nhận nhập</button>
+        <button class="bcr-btn secondary" onclick="app.closeOCR()">❌ Hủy</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="import-modal" class="bcr-modal" style="display:none">
+    <div class="modal-content">
+      <h3>NHẬP DỮ LIỆU CSV</h3>
+      <p>Format: round,result,timestamp<br>VD: 1,P,2026-08-26 13:01:00</p>
+      <textarea id="import-textarea" rows="6" placeholder="1,P,2026-08-26 13:01:00
+2,B,2026-08-26 13:02:10"></textarea>
+      <div class="modal-actions">
+        <button class="bcr-btn primary" onclick="app.confirmImport()">✅ Nhập</button>
+        <button class="bcr-btn secondary" onclick="app.closeImport()">❌ Hủy</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+:root {
+  --bg-primary: #0b0d14;
+  --bg-secondary: #151821;
+  --bg-card: #1c1f2a;
+  --bg-hover: #252a38;
+  --border: #2a2e3b;
+  --border-light: #3a3f50;
+  --text-primary: #e8e9ec;
+  --text-secondary: #8b8f98;
+  --text-muted: #5a5e6b;
+  --player: #3b82f6;
+  --banker: #ef4444;
+  --tie: #22c55e;
+  --red-road: #ef4444;
+  --blue-road: #3b82f6;
+  --accent: #6366f1;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --success: #22c55e;
+  --radius: 10px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+#bcr-app {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 16px;
+  max-width: 1600px;
+  margin: 0 auto;
+  line-height: 1.5;
+}
+* { box-sizing: border-box; }
+.bcr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.bcr-header-left, .bcr-header-right { display: flex; align-items: center; gap: 12px; }
+.bcr-logo {
+  font-size: 1.4rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.5px;
+}
+.bcr-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(34,197,94,0.15);
+  color: var(--success);
+  border: 1px solid rgba(34,197,94,0.3);
+}
+.bcr-badge.live { animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+.bcr-header-center { display: flex; gap: 16px; }
+.bcr-stat-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 12px;
+  background: var(--bg-card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.bcr-stat-pill .label { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.bcr-stat-pill .value { font-size: 1.1rem; font-weight: 700; }
+.bcr-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bcr-btn:hover { background: var(--bg-hover); border-color: var(--border-light); }
+.bcr-btn.primary { background: var(--accent); border-color: var(--accent); color: white; }
+.bcr-btn.primary:hover { background: #5558e0; }
+.bcr-btn.secondary { background: var(--bg-secondary); }
+.bcr-btn.text { background: transparent; border: none; color: var(--text-secondary); font-size: 0.8rem; }
+.bcr-btn.text:hover { color: var(--text-primary); }
+.bcr-section { margin-bottom: 16px; }
+.input-section { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.bcr-input-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.bcr-input-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  border-radius: var(--radius);
+  border: 2px solid transparent;
+  background: var(--bg-card);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 100px;
+}
+.bcr-input-btn:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.bcr-input-btn:active { transform: translateY(0); }
+.bcr-input-btn.player { background: linear-gradient(135deg, rgba(59,130,246,0.2), rgba(59,130,246,0.05)); border-color: var(--player); }
+.bcr-input-btn.player:hover { background: linear-gradient(135deg, rgba(59,130,246,0.3), rgba(59,130,246,0.1)); }
+.bcr-input-btn.banker { background: linear-gradient(135deg, rgba(239,68,68,0.2), rgba(239,68,68,0.05)); border-color: var(--banker); }
+.bcr-input-btn.banker:hover { background: linear-gradient(135deg, rgba(239,68,68,0.3), rgba(239,68,68,0.1)); }
+.bcr-input-btn.tie { background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05)); border-color: var(--tie); }
+.bcr-input-btn.tie:hover { background: linear-gradient(135deg, rgba(34,197,94,0.3), rgba(34,197,94,0.1)); }
+.bcr-input-btn.undo { background: var(--bg-hover); border-color: var(--border-light); color: var(--text-secondary); }
+.bcr-input-btn.undo:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.btn-label { font-size: 0.9rem; letter-spacing: 1px; }
+.btn-sub { font-size: 1.8rem; margin-top: 4px; }
+.stats-section { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.bcr-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+.bcr-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.bcr-stat-card:hover { transform: translateY(-2px); border-color: var(--border-light); }
+.bcr-stat-card .stat-title { font-size: 0.65rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.bcr-stat-card .stat-value { font-size: 1.6rem; font-weight: 800; }
+.bcr-stat-card .stat-percent { font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; }
+.bcr-stat-card.player { border-top: 3px solid var(--player); }
+.bcr-stat-card.banker { border-top: 3px solid var(--banker); }
+.bcr-stat-card.tie { border-top: 3px solid var(--tie); }
+.bcr-stat-card.total .stat-value { color: var(--accent); }
+.bcr-stat-card.streak .stat-value { color: var(--warning); }
+.bcr-main-layout {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 1024px) { .bcr-main-layout { grid-template-columns: 1fr; } }
+.bcr-roads-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.bcr-road-container { width: 100%; }
+.road-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.road-hint { font-size: 0.65rem; font-weight: 500; color: var(--text-muted); text-transform: none; }
+.road-scroll { overflow-x: auto; padding-bottom: 4px; }
+.road-scroll::-webkit-scrollbar { height: 6px; }
+.road-scroll::-webkit-scrollbar-track { background: var(--bg-card); border-radius: 3px; }
+.road-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+.road-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 3px;
+  min-height: 180px;
+}
+.road-grid.big-road { grid-template-rows: repeat(6, 42px); }
+.road-grid.derived-road { grid-template-rows: repeat(6, 28px); }
+.road-cell {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--bg-card);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.road-grid.derived-road .road-cell { width: 28px; height: 28px; }
+.road-symbol {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 3px solid;
+  background: transparent;
+  position: relative;
+}
+.road-symbol.banker { border-color: var(--banker); }
+.road-symbol.player { border-color: var(--player); }
+.road-grid.derived-road .road-symbol { width: 18px; height: 18px; border-width: 2px; }
+.road-grid.derived-road .road-symbol.solid { background: currentColor; border: none; }
+.road-grid.derived-road .road-symbol.slash {
+  width: 18px; height: 18px; background: transparent; border: none;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 14px;
+}
+.road-grid.derived-road .road-symbol.slash.red { color: var(--red-road); }
+.road-grid.derived-road .road-symbol.slash.blue { color: var(--blue-road); }
+.road-grid.derived-road .road-symbol.red { color: var(--red-road); }
+.road-grid.derived-road .road-symbol.blue { color: var(--blue-road); }
+.road-grid.derived-road .road-symbol.red.solid { background: var(--red-road); }
+.road-grid.derived-road .road-symbol.blue.solid { background: var(--blue-road); }
+.tie-lines {
+  position: absolute;
+  top: 50%; left: 10%; right: 10%;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.tie-line {
+  height: 2px;
+  background: var(--tie);
+  border-radius: 1px;
+  opacity: 0.9;
+}
+.tie-count {
+  position: absolute;
+  top: 2px; right: 2px;
+  font-size: 0.6rem;
+  color: var(--tie);
+  font-weight: 700;
+  background: rgba(0,0,0,0.6);
+  padding: 0 3px;
+  border-radius: 3px;
+}
+.bcr-derived-roads {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+@media (max-width: 768px) { .bcr-derived-roads { grid-template-columns: 1fr; } }
+.bcr-sidebar { display: flex; flex-direction: column; gap: 16px; }
+.bcr-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+}
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-header h3 {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0;
+}
+.history-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-track { background: var(--bg-card); }
+.history-list::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+.history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+  transition: background 0.15s;
+}
+.history-item:hover { background: var(--bg-hover); }
+.history-item .round-num { color: var(--text-muted); font-size: 0.75rem; width: 45px; }
+.history-item .round-result {
+  font-weight: 800;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  border: 2px solid;
+  font-size: 0.8rem;
+}
+.history-item .round-result.P { color: var(--player); border-color: var(--player); }
+.history-item .round-result.B { color: var(--banker); border-color: var(--banker); }
+.history-item .round-result.T { color: var(--tie); border-color: var(--tie); }
+.history-item .round-time { color: var(--text-muted); font-size: 0.75rem; flex: 1; text-align: center; }
+.history-item .round-actions { display: flex; gap: 4px; }
+.history-item .round-actions button {
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer;
+  font-size: 0.8rem; padding: 2px 6px; border-radius: 4px;
+}
+.history-item .round-actions button:hover { background: rgba(239,68,68,0.1); color: var(--danger); }
+.empty-state {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
+  font-size: 0.85rem;
+}
+.bcr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+.bcr-table th, .bcr-table td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.bcr-table th {
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  background: var(--bg-card);
+}
+.bcr-table td { color: var(--text-primary); }
+.bcr-table tr:hover td { background: var(--bg-hover); }
+.trend-up { color: var(--banker); font-weight: 700; }
+.trend-down { color: var(--player); font-weight: 700; }
+.trend-balance { color: var(--tie); font-weight: 700; }
+.pattern-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.pattern-item:last-child { border-bottom: none; }
+.pattern-label { color: var(--text-secondary); }
+.pattern-value { font-weight: 700; color: var(--text-primary); }
+.bcr-warning {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: var(--warning);
+}
+.next-round-panel { border-left: 3px solid var(--accent); }
+.next-scores { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.score-bar {
+  display: grid;
+  grid-template-columns: 60px 1fr 40px;
+  align-items: center;
+  gap: 10px;
+}
+.score-label { font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); }
+.score-track {
+  height: 8px;
+  background: var(--bg-card);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.score-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+.score-fill.player { background: var(--player); }
+.score-fill.banker { background: var(--banker); }
+.score-fill.tie { background: var(--tie); }
+.score-value { font-size: 0.85rem; font-weight: 700; text-align: right; }
+.next-confidence {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.conf-label { color: var(--text-secondary); }
+.conf-value { font-weight: 800; }
+.conf-low { color: var(--warning); }
+.conf-medium { color: #f97316; }
+.conf-high { color: var(--success); }
+.next-evaluation {
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  background: var(--bg-card);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+.ai-panel { border-top: 3px solid var(--accent); }
+.ai-section { margin-bottom: 12px; }
+.ai-section:last-child { margin-bottom: 0; }
+.ai-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.ai-data {
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  background: var(--bg-card);
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-family: 'SF Mono', monospace;
+  line-height: 1.5;
+}
+.session-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.session-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.session-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: var(--bg-card);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+.session-item:hover { border-color: var(--border-light); }
+.session-info { display: flex; flex-direction: column; }
+.session-name { font-weight: 700; }
+.session-meta { font-size: 0.75rem; color: var(--text-muted); }
+.session-actions { display: flex; gap: 6px; }
+.bcr-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-content h3 { margin: 0 0 12px 0; font-size: 1.1rem; }
+.modal-content p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; }
+.modal-content input[type="file"],
+.modal-content textarea {
+  width: 100%;
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  margin-bottom: 10px;
+}
+.modal-content textarea { resize: vertical; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+#data-warnings {
+  position: fixed;
+  bottom: 20px; right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  max-width: 350px;
+}
+.data-warning-toast {
+  background: var(--bg-secondary);
+  border: 1px solid var(--warning);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.8rem;
+  color: var(--warning);
+  box-shadow: var(--shadow);
+  animation: slideIn 0.3s ease;
+}
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+</style>
+
+<script>
+class BaccaratAnalyzer {
+  constructor() {
+    this.rounds = [];
+    this.sessions = JSON.parse(localStorage.getItem('bcr_sessions') || '[]');
+    this.currentSessionId = null;
+    this.undoStack = [];
+    this.ocrPending = null;
+    this.init();
+  }
+
+  init() {
+    this.renderSessions();
+    this.updateAll();
+    this.checkDataWarnings();
+  }
+
+  addRound(result) {
+    this.undoStack.push([...this.rounds]);
+    if (this.undoStack.length > 20) this.undoStack.shift();
+    const round = {
+      roundNumber: this.rounds.length + 1,
+      result: result,
+      timestamp: new Date().toISOString()
+    };
+    this.rounds.push(round);
+    this.updateAll();
+    this.checkDataWarnings();
+  }
+
+  undo() {
+    if (this.undoStack.length === 0) return;
+    this.rounds = this.undoStack.pop();
+    this.updateAll();
+    this.checkDataWarnings();
+  }
+
+  resetSession() {
+    if (!confirm('Bạn có chắc muốn reset phiên hiện tại?')) return;
+    this.undoStack.push([...this.rounds]);
+    this.rounds = [];
+    this.currentSessionId = null;
+    this.updateAll();
+    this.showWarning('Đã reset phiên. Dữ liệu cũ đã được lưu vào undo stack.');
+  }
+
+  deleteRound(index) {
+    this.undoStack.push([...this.rounds]);
+    this.rounds.splice(index, 1);
+    this.rounds.forEach((r, i) => r.roundNumber = i + 1);
+    this.updateAll();
+  }
+
+  clearHistory() {
+    if (!confirm('Xóa toàn bộ lịch sử?')) return;
+    this.undoStack.push([...this.rounds]);
+    this.rounds = [];
+    this.updateAll();
+  }
+
+  computeBigRoad() {
+    const grid = [];
+    let lastResult = null;
+    let currentCol = -1;
+    let currentRow = -1;
+    for (const round of this.rounds) {
+      const r = round.result;
+      if (r === 'T') {
+        if (currentCol >= 0 && currentRow >= 0 && grid[currentCol]?.[currentRow]) {
+          grid[currentCol][currentRow].ties = (grid[currentCol][currentRow].ties || 0) + 1;
+        }
+        continue;
+      }
+      if (lastResult === null) {
+        currentCol = 0;
+        currentRow = 0;
+      } else if (r === lastResult) {
+        const nextRow = currentRow + 1;
+        if (nextRow < 6) {
+          if (!grid[currentCol]?.[nextRow]) {
+            currentRow = nextRow;
+          } else {
+            currentCol++;
+          }
+        } else {
+          currentCol++;
+        }
+      } else {
+        currentCol = grid.length;
+        currentRow = 0;
+      }
+      while (grid.length <= currentCol) grid.push(new Array(6).fill(null));
+      while (grid[currentCol][currentRow]) {
+        currentCol++;
+        if (grid.length <= currentCol) grid.push(new Array(6).fill(null));
+      }
+      grid[currentCol][currentRow] = { result: r, ties: 0, round: round.roundNumber };
+      lastResult = r;
+    }
+    return grid;
+  }
+
+  computeDerivedRoad(bigRoadGrid, cycle) {
+    const grid = [];
+    let lastColor = null;
+    let currentCol = -1;
+    let currentRow = -1;
+    for (let n = 0; n < bigRoadGrid.length; n++) {
+      for (let m = 0; m < 6; m++) {
+        const cell = bigRoadGrid[n][m];
+        if (!cell) continue;
+        if (n < cycle + 1) continue;
+        const prevCol = n - cycle;
+        const prevColLength = bigRoadGrid[prevCol].filter(c => c !== null).length;
+        let color;
+        if (m >= 1) {
+          const row1Indexed = m + 1;
+          if (row1Indexed <= prevColLength) color = 'red';
+          else if (row1Indexed === prevColLength + 1) color = 'blue';
+          else color = 'red';
+        } else {
+          const row1Indexed = 2;
+          let temp;
+          if (row1Indexed <= prevColLength) temp = 'red';
+          else if (row1Indexed === prevColLength + 1) temp = 'blue';
+          else temp = 'red';
+          color = temp === 'red' ? 'blue' : 'red';
+        }
+        if (lastColor === null) {
+          currentCol = 0;
+          currentRow = 0;
+        } else if (color === lastColor) {
+          const nextRow = currentRow + 1;
+          if (nextRow < 6 && !grid[currentCol]?.[nextRow]) {
+            currentRow = nextRow;
+          } else {
+            currentCol++;
+          }
+        } else {
+          currentCol = grid.length;
+          currentRow = 0;
+        }
+        while (grid.length <= currentCol) grid.push(new Array(6).fill(null));
+        while (grid[currentCol][currentRow]) {
+          currentCol++;
+          if (grid.length <= currentCol) grid.push(new Array(6).fill(null));
+        }
+        grid[currentCol][currentRow] = { color, round: cell.round };
+        lastColor = color;
+      }
+    }
+    return grid;
+  }
+
+  computeStats() {
+    const total = this.rounds.length;
+    const player = this.rounds.filter(r => r.result === 'P').length;
+    const banker = this.rounds.filter(r => r.result === 'B').length;
+    const tie = this.rounds.filter(r => r.result === 'T').length;
+    const nonTie = this.rounds.filter(r => r.result !== 'T');
+    let currentStreak = { type: '-', count: 0 };
+    let maxStreak = { type: '-', count: 0 };
+    let tempStreak = { type: '-', count: 0 };
+    let transitions = 0;
+    for (let i = 0; i < nonTie.length; i++) {
+      const r = nonTie[i].result;
+      if (i === 0) {
+        tempStreak = { type: r, count: 1 };
+      } else {
+        if (r === tempStreak.type) {
+          tempStreak.count++;
+        } else {
+          if (tempStreak.count > maxStreak.count) maxStreak = { ...tempStreak };
+          transitions++;
+          tempStreak = { type: r, count: 1 };
+        }
+      }
+    }
+    if (tempStreak.count > maxStreak.count) maxStreak = { ...tempStreak };
+    if (nonTie.length > 0) currentStreak = { ...tempStreak };
+    const windows = [10, 20, 50, 100];
+    const freq = {};
+    for (const w of windows) {
+      const recent = this.rounds.slice(-w);
+      freq[w] = {
+        P: recent.filter(r => r.result === 'P').length,
+        B: recent.filter(r => r.result === 'B').length,
+        T: recent.filter(r => r.result === 'T').length,
+        total: recent.length
+      };
+    }
+    return {
+      total, player, banker, tie,
+      playerPct: total ? ((player/total)*100).toFixed(2) : 0,
+      bankerPct: total ? ((banker/total)*100).toFixed(2) : 0,
+      tiePct: total ? ((tie/total)*100).toFixed(2) : 0,
+      currentStreak, maxStreak, transitions, freq
+    };
+  }
+
+  computeTrends() {
+    const windows = [10, 20, 50, 100];
+    return windows.map(w => {
+      const recent = this.rounds.slice(-w);
+      const total = recent.length;
+      if (total === 0) return { window: w, player: 0, banker: 0, tie: 0, trend: 'Không đủ dữ liệu' };
+      const p = recent.filter(r => r.result === 'P').length;
+      const b = recent.filter(r => r.result === 'B').length;
+      const t = recent.filter(r => r.result === 'T').length;
+      const pp = ((p/total)*100).toFixed(1);
+      const bp = ((b/total)*100).toFixed(1);
+      const tp = ((t/total)*100).toFixed(1);
+      let trend;
+      if (Math.abs(pp - bp) <= 5) trend = '<span class="trend-balance">Cân bằng</span>';
+      else if (bp > pp) trend = '<span class="trend-up">Banker cao hơn</span>';
+      else trend = '<span class="trend-down">Player cao hơn</span>';
+      return { window: w, player: pp, banker: bp, tie: tp, trend };
+    });
+  }
+
+  computePatterns() {
+    const nonTie = this.rounds.filter(r => r.result !== 'T').map(r => r.result);
+    if (nonTie.length === 0) return { streak: '-', recent: '-', freq10: '-' };
+    let streakType = nonTie[nonTie.length - 1];
+    let streakCount = 0;
+    for (let i = nonTie.length - 1; i >= 0; i--) {
+      if (nonTie[i] === streakType) streakCount++;
+      else break;
+    }
+    const streakText = (streakType === 'B' ? 'Banker' : 'Player') + ' × ' + streakCount;
+    const recent = nonTie.slice(-5).join(' → ');
+    const last10 = this.rounds.slice(-10);
+    const p10 = last10.filter(r => r.result === 'P').length;
+    const b10 = last10.filter(r => r.result === 'B').length;
+    const t10 = last10.filter(r => r.result === 'T').length;
+    const freq10 = `P:${p10} B:${b10} T:${t10}`;
+    return { streak: streakText, recent, freq10 };
+  }
+
+  analyzeNextRound() {
+    const total = this.rounds.length;
+    if (total < 5) {
+      return { player: 0, banker: 0, tie: 0, confidence: 'Không đủ dữ liệu', evaluation: 'Cần thêm dữ liệu để phân tích có ý nghĩa thống kê.', level: 'none' };
+    }
+    let pScore = 0, bScore = 0, tScore = 0;
+    const allP = this.rounds.filter(r => r.result === 'P').length;
+    const allB = this.rounds.filter(r => r.result === 'B').length;
+    const allT = this.rounds.filter(r => r.result === 'T').length;
+    pScore += (allP / total) * 30;
+    bScore += (allB / total) * 30;
+    tScore += (allT / total) * 10;
+    const recent20 = this.rounds.slice(-20);
+    const rP = recent20.filter(r => r.result === 'P').length;
+    const rB = recent20.filter(r => r.result === 'B').length;
+    const rT = recent20.filter(r => r.result === 'T').length;
+    const rTotal = recent20.length || 1;
+    pScore += (rP / rTotal) * 40;
+    bScore += (rB / rTotal) * 40;
+    tScore += (rT / rTotal) * 15;
+    const nonTie = this.rounds.filter(r => r.result !== 'T');
+    if (nonTie.length >= 2) {
+      let streak = 1;
+      const last = nonTie[nonTie.length - 1].result;
+      for (let i = nonTie.length - 2; i >= 0; i--) {
+        if (nonTie[i].result === last) streak++;
+        else break;
+      }
+      if (streak >= 4) {
+        if (last === 'P') bScore += 10;
+        else pScore += 10;
+      } else if (streak >= 2) {
+        if (last === 'P') pScore += 5;
+        else bScore += 5;
+      }
+    }
+    if (nonTie.length >= 3) {
+      const last3 = nonTie.slice(-3).map(r => r.result);
+      if (last3[0] !== last3[1] && last3[1] !== last3[2]) {
+        const nextExpected = last3[1];
+        if (nextExpected === 'P') pScore += 8;
+        else bScore += 8;
+      }
+    }
+    const totalScore = pScore + bScore + tScore;
+    const playerPct = totalScore ? Math.round((pScore / totalScore) * 100) : 33;
+    const bankerPct = totalScore ? Math.round((bScore / totalScore) * 100) : 33;
+    const tiePct = totalScore ? Math.round((tScore / totalScore) * 100) : 33;
+    let confidence, level;
+    const diff = Math.abs(playerPct - bankerPct);
+    if (total < 20) { confidence = 'THẤP (Dữ liệu ít)'; level = 'low'; }
+    else if (diff < 5) { confidence = 'THẤP (Cân bằng)'; level = 'low'; }
+    else if (diff < 12) { confidence = 'TRUNG BÌNH'; level = 'medium'; }
+    else { confidence = 'TRUNG BÌNH (Chênh lệch rõ)'; level = 'medium'; }
+    let evaluation;
+    if (total < 10) {
+      evaluation = 'Dữ liệu hiện tại chưa cho thấy xu hướng thống kê đủ mạnh. Cần thêm ít nhất 10 ván để phân tích có ý nghĩa.';
+    } else if (diff < 5) {
+      evaluation = 'Dữ liệu gần đây cho thấy sự cân bằng giữa Player và Banker. Không có tín hiệu thống kê rõ ràng cho ván tiếp theo.';
+    } else if (bankerPct > playerPct) {
+      evaluation = `Banker có tần suất cao hơn ${(bankerPct - playerPct).toFixed(0)}% trong phân tích tổng hợp. Tuy nhiên, đây chỉ là xu hướng lịch sử, không đảm bảo kết quả tương lai.`;
+    } else {
+      evaluation = `Player có tần suất cao hơn ${(playerPct - bankerPct).toFixed(0)}% trong phân tích tổng hợp. Tuy nhiên, đây chỉ là xu hướng lịch sử, không đảm bảo kết quả tương lai.`;
+    }
+    return { player: playerPct, banker: bankerPct, tie: tiePct, confidence, evaluation, level };
+  }
+
+  analyzeAI() {
+    const total = this.rounds.length;
+    if (total < 5) {
+      return { recent: '-', trend: 'Chưa đủ dữ liệu.', pattern: '-', evaluation: 'Cần ít nhất 5 ván để AI phân tích.' };
+    }
+    const recent20 = this.rounds.slice(-20).map(r => r.result).join(' ');
+    const nonTie = this.rounds.filter(r => r.result !== 'T');
+    const last50 = this.rounds.slice(-50);
+    const b50 = last50.filter(r => r.result === 'B').length;
+    const p50 = last50.filter(r => r.result === 'P').length;
+    let trend;
+    if (b50 > p50 * 1.2) trend = 'Banker xuất hiện nhiều hơn đáng kể trong cửa sổ 50 ván gần nhất.';
+    else if (p50 > b50 * 1.2) trend = 'Player xuất hiện nhiều hơn đáng kể trong cửa sổ 50 ván gần nhất.';
+    else trend = 'Phân bố Player/Banker tương đối cân bằng trong cửa sổ 50 ván gần nhất.';
+    let pattern = 'Không phát hiện pattern đặc biệt.';
+    if (nonTie.length >= 4) {
+      const last4 = nonTie.slice(-4).map(r => r.result).join('');
+      if (last4 === 'PBPB' || last4 === 'BPBP') pattern = 'Phát hiện pattern xen kẽ (P-B-P-B) trong 4 ván gần nhất.';
+      else if (last4 === 'BBBB') pattern = 'Chuỗi Banker dài (≥4) đang diễn ra.';
+      else if (last4 === 'PPPP') pattern = 'Chuỗi Player dài (≥4) đang diễn ra.';
+      else {
+        const pairs = [];
+        for (let i = 0; i < nonTie.length - 1; i++) pairs.push(nonTie[i].result + nonTie[i+1].result);
+        const pairCounts = {};
+        pairs.forEach(p => pairCounts[p] = (pairCounts[p] || 0) + 1);
+        const maxPair = Object.entries(pairCounts).sort((a,b) => b[1]-a[1])[0];
+        if (maxPair && maxPair[1] >= 3) pattern = `Pattern chuyển tiếp "${maxPair[0]}" xuất hiện ${maxPair[1]} lần.`;
+      }
+    }
+    const last10 = this.rounds.slice(-10);
+    const volatility = last10.filter((r,i,a) => i>0 && r.result !== a[i-1].result && r.result !== 'T' && a[i-1].result !== 'T').length;
+    let evaluation;
+    if (volatility >= 6) evaluation = 'Chuỗi hiện tại đang có mức biến động cao (choppy). Khó xác định xu hướng rõ ràng.';
+    else if (volatility <= 2) evaluation = 'Chuỗi hiện tại có xu hướng ổn định (streaky). Tuy nhiên, streak có thể kết thúc bất cứ lúc nào.';
+    else evaluation = 'Biến động ở mức trung bình. Không có tín hiệu thống kê đủ mạnh để kết luận kết quả ván tiếp theo.';
+    if (total < 30) evaluation += ' Lưu ý: Số lượng mẫu dữ liệu còn hạn chế.';
+    return { recent: recent20, trend, pattern, evaluation };
+  }
+
+
+  updateAll() {
+    const stats = this.computeStats();
+    const trends = this.computeTrends();
+    const patterns = this.computePatterns();
+    const nextRound = this.analyzeNextRound();
+    const ai = this.analyzeAI();
+    const bigRoad = this.computeBigRoad();
+    const bigEyeBoy = this.computeDerivedRoad(bigRoad, 1);
+    const smallRoad = this.computeDerivedRoad(bigRoad, 2);
+    const cockroach = this.computeDerivedRoad(bigRoad, 3);
+
+    document.getElementById('total-rounds').textContent = stats.total;
+    document.getElementById('last-update').textContent = stats.total > 0 
+      ? new Date(this.rounds[this.rounds.length-1].timestamp).toLocaleTimeString('vi-VN')
+      : '--:--:--';
+
+    document.getElementById('stat-total').textContent = stats.total;
+    document.getElementById('stat-player-count').textContent = stats.player;
+    document.getElementById('stat-player-pct').textContent = stats.playerPct + '%';
+    document.getElementById('stat-banker-count').textContent = stats.banker;
+    document.getElementById('stat-banker-pct').textContent = stats.bankerPct + '%';
+    document.getElementById('stat-tie-count').textContent = stats.tie;
+    document.getElementById('stat-tie-pct').textContent = stats.tiePct + '%';
+    document.getElementById('stat-current-streak').textContent = stats.currentStreak.type !== '-' 
+      ? (stats.currentStreak.type === 'B' ? 'B' : 'P') + '×' + stats.currentStreak.count 
+      : '-';
+    document.getElementById('stat-max-streak').textContent = stats.maxStreak.type !== '-' 
+      ? (stats.maxStreak.type === 'B' ? 'B' : 'P') + '×' + stats.maxStreak.count 
+      : '-';
+    document.getElementById('stat-transitions').textContent = stats.transitions;
+
+    this.renderRoad('big-road', bigRoad, 'big');
+    this.renderRoad('big-eye-boy', bigEyeBoy, 'bigEye');
+    this.renderRoad('small-road', smallRoad, 'small');
+    this.renderRoad('cockroach-road', cockroach, 'cockroach');
+
+    this.renderHistory();
+
+    const trendBody = document.querySelector('#trend-table tbody');
+    trendBody.innerHTML = trends.map(t => `
+      <tr>
+        <td>${t.window} ván</td>
+        <td>${t.player}%</td>
+        <td>${t.banker}%</td>
+        <td>${t.tie}%</td>
+        <td>${t.trend}</td>
+      </tr>
+    `).join('');
+
+    document.getElementById('pattern-streak').textContent = patterns.streak;
+    document.getElementById('pattern-recent').textContent = patterns.recent;
+    document.getElementById('pattern-freq-10').textContent = patterns.freq10;
+    document.getElementById('pattern-warning').style.display = stats.total > 0 ? 'block' : 'none';
+
+    document.getElementById('next-player-score').textContent = nextRound.player + '%';
+    document.getElementById('next-player-bar').style.width = nextRound.player + '%';
+    document.getElementById('next-banker-score').textContent = nextRound.banker + '%';
+    document.getElementById('next-banker-bar').style.width = nextRound.banker + '%';
+    document.getElementById('next-tie-score').textContent = nextRound.tie + '%';
+    document.getElementById('next-tie-bar').style.width = nextRound.tie + '%';
+
+    const confEl = document.getElementById('next-confidence');
+    confEl.textContent = nextRound.confidence;
+    confEl.className = 'conf-value conf-' + nextRound.level;
+    document.getElementById('next-evaluation').textContent = nextRound.evaluation;
+
+    document.getElementById('ai-recent').textContent = ai.recent;
+    document.getElementById('ai-trend').textContent = ai.trend;
+    document.getElementById('ai-pattern').textContent = ai.pattern;
+    document.getElementById('ai-evaluation').textContent = ai.evaluation;
+  }
+
+  renderRoad(containerId, grid, type) {
+    const container = document.getElementById(containerId);
+    if (!grid.length) {
+      container.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Chưa có dữ liệu</div>';
+      return;
+    }
+    let html = '';
+    const maxCols = Math.max(grid.length, 12);
+    for (let col = 0; col < maxCols; col++) {
+      for (let row = 0; row < 6; row++) {
+        const cell = grid[col]?.[row];
+        if (cell) {
+          if (type === 'big') {
+            const tieLines = cell.ties > 0 
+              ? `<div class="tie-lines">${Array(Math.min(cell.ties, 3)).fill('<div class="tie-line"></div>').join('')}</div>`
+                + (cell.ties > 3 ? `<div class="tie-count">${cell.ties}</div>` : '')
+              : '';
+            html += `<div class="road-cell" title="Ván ${cell.round}">
+              <div class="road-symbol ${cell.result === 'B' ? 'banker' : 'player'}"></div>
+              ${tieLines}
+            </div>`;
+          } else if (type === 'bigEye') {
+            html += `<div class="road-cell" title="Ván ${cell.round}"><div class="road-symbol ${cell.color} ${cell.color}"></div></div>`;
+          } else if (type === 'small') {
+            html += `<div class="road-cell" title="Ván ${cell.round}"><div class="road-symbol ${cell.color} solid ${cell.color}"></div></div>`;
+          } else if (type === 'cockroach') {
+            html += `<div class="road-cell" title="Ván ${cell.round}"><div class="road-symbol slash ${cell.color}">/</div></div>`;
+          }
+        } else {
+          html += `<div class="road-cell" style="opacity:0.3"></div>`;
+        }
+      }
+    }
+    container.innerHTML = html;
+  }
+
+  renderHistory() {
+    const list = document.getElementById('history-list');
+    if (this.rounds.length === 0) {
+      list.innerHTML = '<div class="empty-state">Chưa có dữ liệu. Nhập ván đầu tiên.</div>';
+      return;
+    }
+    list.innerHTML = this.rounds.slice().reverse().map((r, idx) => {
+      const actualIdx = this.rounds.length - 1 - idx;
+      const time = new Date(r.timestamp).toLocaleTimeString('vi-VN');
+      return `
+        <div class="history-item">
+          <span class="round-num">#${String(r.roundNumber).padStart(3,'0')}</span>
+          <span class="round-result ${r.result}">${r.result}</span>
+          <span class="round-time">${time}</span>
+          <span class="round-actions">
+            <button onclick="app.deleteRound(${actualIdx})" title="Xóa">🗑</button>
+          </span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  checkDataWarnings() {
+    const warnings = document.getElementById('data-warnings');
+    warnings.innerHTML = '';
+    if (this.rounds.length < 10) {
+      this.showWarning('⚠ INSUFFICIENT DATA: Cần thêm dữ liệu để phân tích có ý nghĩa thống kê.', false);
+    }
+  }
+
+  showWarning(msg, autoHide = true) {
+    const container = document.getElementById('data-warnings');
+    const toast = document.createElement('div');
+    toast.className = 'data-warning-toast';
+    toast.textContent = msg;
+    container.appendChild(toast);
+    if (autoHide) {
+      setTimeout(() => toast.remove(), 5000);
+    }
+  }
+
+  // ===== SESSION MANAGEMENT =====
+  newSession() {
+    if (this.rounds.length > 0 && !confirm('Tạo phiên mới? Dữ liệu hiện tại sẽ bị xóa.')) return;
+    this.rounds = [];
+    this.currentSessionId = null;
+    this.undoStack = [];
+    this.updateAll();
+    this.showWarning('Đã tạo phiên mới.');
+  }
+
+  saveSession() {
+    if (this.rounds.length === 0) {
+      alert('Không có dữ liệu để lưu.');
+      return;
+    }
+    const name = prompt('Tên phiên:', 'Phiên ' + new Date().toLocaleString('vi-VN'));
+    if (!name) return;
+    const session = {
+      id: Date.now().toString(),
+      name: name,
+      createdAt: new Date().toISOString(),
+      rounds: [...this.rounds]
+    };
+    this.sessions.push(session);
+    localStorage.setItem('bcr_sessions', JSON.stringify(this.sessions));
+    this.currentSessionId = session.id;
+    this.renderSessions();
+    this.showWarning('Đã lưu phiên: ' + name);
+  }
+
+  loadSession(id) {
+    const session = this.sessions.find(s => s.id === id);
+    if (!session) return;
+    if (this.rounds.length > 0 && !confirm('Tải phiên sẽ thay thế dữ liệu hiện tại. Tiếp tục?')) return;
+    this.rounds = [...session.rounds];
+    this.currentSessionId = session.id;
+    this.undoStack = [];
+    this.updateAll();
+    this.showWarning('Đã tải phiên: ' + session.name);
+  }
+
+  deleteSession(id) {
+    if (!confirm('Xóa phiên này?')) return;
+    this.sessions = this.sessions.filter(s => s.id !== id);
+    localStorage.setItem('bcr_sessions', JSON.stringify(this.sessions));
+    if (this.currentSessionId === id) this.currentSessionId = null;
+    this.renderSessions();
+  }
+
+  renderSessions() {
+    const container = document.getElementById('session-list');
+    if (this.sessions.length === 0) {
+      container.innerHTML = '<div class="empty-state">Chưa có phiên nào được lưu.</div>';
+      return;
+    }
+    container.innerHTML = this.sessions.slice().reverse().map(s => {
+      const date = new Date(s.createdAt).toLocaleString('vi-VN');
+      const isActive = s.id === this.currentSessionId;
+      return `
+        <div class="session-item" style="${isActive ? 'border-color:var(--accent)' : ''}">
+          <div class="session-info">
+            <span class="session-name">${isActive ? '● ' : ''}${s.name}</span>
+            <span class="session-meta">${date} • ${s.rounds.length} ván</span>
+          </div>
+          <div class="session-actions">
+            <button class="bcr-btn text" onclick="app.loadSession('${s.id}')">Tải</button>
+            <button class="bcr-btn text" onclick="app.deleteSession('${s.id}')" style="color:var(--danger)">Xóa</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ===== IMPORT/EXPORT =====
+  exportCSV() {
+    if (this.rounds.length === 0) {
+      alert('Không có dữ liệu để xuất.');
+      return;
+    }
+    let csv = 'round,result,timestamp\n';
+    for (const r of this.rounds) {
+      csv += `${r.roundNumber},${r.result},${r.timestamp}\n`;
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bcr_session_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    this.showWarning('Đã xuất CSV.');
+  }
+
+  importCSV() {
+    document.getElementById('import-modal').style.display = 'flex';
+  }
+
+  closeImport() {
+    document.getElementById('import-modal').style.display = 'none';
+    document.getElementById('import-textarea').value = '';
+  }
+
+  confirmImport() {
+    const text = document.getElementById('import-textarea').value.trim();
+    if (!text) return;
+    const lines = text.split('\n').filter(l => l.trim());
+    const newRounds = [];
+    for (const line of lines) {
+      const parts = line.split(',');
+      if (parts.length >= 2 && ['P','B','T'].includes(parts[1].trim().toUpperCase())) {
+        newRounds.push({
+          roundNumber: parseInt(parts[0]) || newRounds.length + 1,
+          result: parts[1].trim().toUpperCase(),
+          timestamp: parts[2] ? parts[2].trim() : new Date().toISOString()
+        });
+      }
+    }
+    if (newRounds.length === 0) {
+      alert('Không có dữ liệu hợp lệ.');
+      return;
+    }
+    this.undoStack.push([...this.rounds]);
+    this.rounds = newRounds;
+    this.updateAll();
+    this.closeImport();
+    this.showWarning(`Đã nhập ${newRounds.length} ván từ CSV.`);
+  }
+
+  // ===== OCR SIMULATION =====
+  simulateOCR() {
+    document.getElementById('ocr-modal').style.display = 'flex';
+    document.getElementById('ocr-result').textContent = '';
+    document.getElementById('ocr-preview').innerHTML = '';
+    this.ocrPending = null;
+  }
+
+  closeOCR() {
+    document.getElementById('ocr-modal').style.display = 'none';
+    document.getElementById('ocr-file').value = '';
+    this.ocrPending = null;
+  }
+
+  handleOCRUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      document.getElementById('ocr-preview').innerHTML = `<img src="${e.target.result}" style="max-width:100%;max-height:200px;border-radius:6px;">`;
+      // Simulate OCR with random plausible data
+      const possible = ['P','B','B','P','T','B','P','B','B','P'];
+      const simulated = Array.from({length: 8}, () => possible[Math.floor(Math.random() * possible.length)]);
+      this.ocrPending = simulated;
+      document.getElementById('ocr-result').innerHTML = `
+        <div style="color:var(--warning);margin-bottom:6px;">⚠ OCR UNCERTAIN: Vui lòng xác nhận trước khi nhập.</div>
+        <div style="font-size:1.1rem;letter-spacing:4px;">${simulated.join(' ')}</div>
+      `;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  confirmOCR() {
+    if (!this.ocrPending) return;
+    this.undoStack.push([...this.rounds]);
+    for (const result of this.ocrPending) {
+      this.rounds.push({
+        roundNumber: this.rounds.length + 1,
+        result: result,
+        timestamp: new Date().toISOString()
+      });
+    }
+    this.updateAll();
+    this.closeOCR();
+    this.showWarning(`Đã nhập ${this.ocrPending.length} ván từ OCR.`);
+  }
+}
+
+const app = new BaccaratAnalyzer();
+</script>
